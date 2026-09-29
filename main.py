@@ -8,16 +8,17 @@ def find_numbers(message):
     return [int(word.strip(",")) for word in message.split() if word.strip(",").isdigit()]
 
 # SETUP: ------------------------------
-# map package addresses to their index in the distance matrix for routing
+
+# build a destination and routing map by mapping a relation between distance and package sheets
 matrix_addresses, distance_matrix = load_distance_data()
 packages = load_packages(matrix_addresses)
 
-# store package references by id to a table for looking up state
+# create a hash table for easy lookups
 package_table = HashTable(size=53)
 for package in packages:
     package_table.insert(package.id, package)
 
-# pre-processing before trucks are loaded
+# create objects
 driver1 = Driver(id=1, name="Driver 1")
 driver2 = Driver(id=2, name="Driver 2")
 
@@ -26,14 +27,12 @@ truck2 = Truck(id=2, model="Truck 2")
 truck3 = Truck(id=3, model="Truck 3")
 trucks = [truck1, truck2, truck3]
 
-truck1.packages = []
-truck2.packages = []
-truck3.packages = []
-
-
 
 
 # LOADING TRUCKS: ------------------------------
+truck1.packages = []
+truck2.packages = []
+truck3.packages = []
 
 # 1 load packages designated for specific trucks
 for package in packages:
@@ -52,7 +51,7 @@ for package in packages:
         package.status = "Loaded"
 
 # update the packages at the hub by removing packages marked "loaded"
-packages[:] = [p for p in packages if p.status is not "Loaded"]
+packages[:] = [p for p in packages if p.status != "Loaded"]
 
 
 
@@ -77,7 +76,7 @@ for truck in trucks:
         break
 
 # update the packages at the hub by removing packages marked "loaded"
-packages[:] = [p for p in packages if p.status is not "Loaded"]
+packages[:] = [p for p in packages if p.status != "Loaded"]
 
 
 # 3 leave the delayed packages at the hub
@@ -104,7 +103,7 @@ for package in packages:
         package.status = "Loaded"
 
 # update the packages at the hub by removing packages marked "loaded"
-packages[:] = [p for p in packages if p.status is not "Loaded"]
+packages[:] = [p for p in packages if p.status != "Loaded"]
 
 
 # EN ROUTE -----------------------------------------------------
