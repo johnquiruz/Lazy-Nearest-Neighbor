@@ -54,6 +54,8 @@ for package in packages:
 # update the packages at the hub by removing packages marked "loaded"
 packages[:] = [p for p in packages if p.status is not "Loaded"]
 
+
+
 # 2 identify bundled packages and load them together
 group_ids = set()
 for package in packages:
@@ -77,7 +79,8 @@ for truck in trucks:
 # update the packages at the hub by removing packages marked "loaded"
 packages[:] = [p for p in packages if p.status is not "Loaded"]
 
-# load remaining packages to next available truck
+
+# 3 leave the delayed packages at the hub
 next_truck = 0
 for package in packages:
     note = package.special_note.lower()
@@ -95,7 +98,7 @@ for package in packages:
         if next_truck >= len(trucks):
             raise ValueError("No truck has available capacity")
 
-        # put package on the next truck with room
+        # 4 load remaining packages to next available truck
         package.assigned_truck = trucks[next_truck]
         package.assigned_truck.packages.append(package)
         package.status = "Loaded"
@@ -103,6 +106,8 @@ for package in packages:
 # update the packages at the hub by removing packages marked "loaded"
 packages[:] = [p for p in packages if p.status is not "Loaded"]
 
+
+# EN ROUTE -----------------------------------------------------
 # drivers get behind the wheel
 driver1.assign_truck(truck1)
 driver2.assign_truck(truck2)
