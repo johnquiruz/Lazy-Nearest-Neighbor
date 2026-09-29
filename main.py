@@ -3,8 +3,8 @@ from objects import Driver, Truck
 from utilities.convert_to_matrix import load_distance_data
 from utilities.convert_to_package_list import load_packages
 
+# returns digits in the special note as a list of integers
 def find_numbers(message):
-    # saves digits in a string as a list of integers and returns the list
     return [int(word.strip(",")) for word in message.split() if word.strip(",").isdigit()]
 
 # SETUP: ------------------------------
@@ -12,7 +12,7 @@ def find_numbers(message):
 matrix_addresses, distance_matrix = load_distance_data()
 packages = load_packages(matrix_addresses)
 
-# store package references by id for looking up state
+# store package references by id to a table for looking up state
 package_table = HashTable(size=53)
 for package in packages:
     package_table.insert(package.id, package)
@@ -34,49 +34,79 @@ truck3.packages = []
 
 
 # LOADING TRUCKS: ------------------------------
-# check for any special instructions before placing package on truck
+
+# 1 load packages designated for specific trucks
+for package in packages:
+    note = package.special_note.lower()
+
+    # gets truck id from the special note
+    if "on truck" in note:
+        truck = trucks[find_numbers(note)[0] - 1]
+
+        if len(truck.packages) >= truck.max_load:
+            raise ValueError(f"Truck {truck.id} is full; can't load package {package.id}")
+
+        # package is assigned to truck and then loaded
+        package.assigned_truck = truck
+        truck.packages.append(package)
+        package.status = "Loaded"
+
+# update the packages at the hub by removing packages marked "loaded"
+packages[:] = [p for p in packages if p.status is not "Loaded"]
+
+# 2 identify bundled packages and load them together
+group_ids = set()
+for package in packages:
+    note = package.special_note.lower()
+    if "delivered with" in note:
+        group_ids.add(package.id)
+        group_ids.update(find_numbers(note))
+
+# group actual packages based on ids
+group = [p for p in packages if p.id in group_ids]
+
+# find truck that has enough room for group of packages and actually load them
+for truck in trucks:
+    if len(truck.packages) + len(group) <= truck.max_load:
+        for package in group:
+            package.assigned_truck = truck
+            truck.packages.append(package)
+            package.status = "Loaded"
+        break
+
+# update the packages at the hub by removing packages marked "loaded"
+packages[:] = [p for p in packages if p.status is not "Loaded"]
+
+# load remaining packages to next available truck
 next_truck = 0
 for package in packages:
     note = package.special_note.lower()
 
-    if "delivered with" in note:
-        package.must_deliver_with = find_numbers(note)
-
-    elif "on truck" in note:
-        truck_number = find_numbers(note)[0]
-        package.assigned_truck = trucks[truck_number - 1]
-        package.assigned_truck.packages.append(package)
-
-    elif "delayed" in note:
+    if "delayed" in note:
+        # this package stays at hub 
         package.status = "Delayed"
 
     else:
-        # place each package on the next available truck
-        while next_truck < len(trucks) and len(trucks[next_truck].packages) == trucks[next_truck].max_load:
+        # skip trucks that are full or reach the end of the truck list
+        while next_truck < len(trucks) and len(trucks[next_truck].packages) >= trucks[next_truck].max_load:
             next_truck += 1
 
-        if next_truck == len(trucks):
+        # notify dev no more trucks can be loaded
+        if next_truck >= len(trucks):
             raise ValueError("No truck has available capacity")
 
+        # put package on the next truck with room
         package.assigned_truck = trucks[next_truck]
         package.assigned_truck.packages.append(package)
-        package.status = "At Hub"
+        package.status = "Loaded"
+
+# update the packages at the hub by removing packages marked "loaded"
+packages[:] = [p for p in packages if p.status is not "Loaded"]
 
 # drivers get behind the wheel
 driver1.assign_truck(truck1)
 driver2.assign_truck(truck2)
 
-# TEST: 
-print(len(truck1.packages))
-print(len(truck2.packages))
-print(len(truck3.packages))
-print(len(packages)) # TODO: the packages that were loaded should be removed from the packages list, but they are not. This is a bug that needs to be fixed.
-
-
-# ROUTING: ------------------------------
-# for package in packages:
-#     print(package.status)
-
-# for bucket in package_table.buckets:
-    # for package_id, package in bucket:
-        # print(f"Package ID: {package.id}, Address: {package.address}, Location Index: {package.location_index}, Status: {package.status}")
+print(f"Packages left: {len(packages)}")
+for package in packages:
+    print(f"Package: {package.id}, Status: {package.status}, Deadline: {package.deadline}, Special NOte: {package.special_note}")
