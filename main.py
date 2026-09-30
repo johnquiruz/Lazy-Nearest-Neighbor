@@ -30,9 +30,6 @@ trucks = [truck1, truck2, truck3]
 
 
 # LOADING TRUCKS: ------------------------------
-truck1.packages = []
-truck2.packages = []
-truck3.packages = []
 
 # 1 load packages designated for specific trucks
 for package in packages:
@@ -106,11 +103,97 @@ for package in packages:
 packages[:] = [p for p in packages if p.status != "Loaded"]
 
 
+
+
 # EN ROUTE -----------------------------------------------------
-# drivers get behind the wheel
+
+# remember: time is minutes since midnight
+ADDRESS_FIX_TIME = 620   # 10:20 am, package 9 gets its real address
+
+# turns minutes into text like 09:05
+def time_to_text(minutes):
+    return f"{int(minutes // 60):02d}:{int(minutes % 60):02d}"
+
+# lookup package 9 in hash table
+package9 = package_table.get(9)
+
+# fix package 9 address once the truck carrying it hits 10:20
+def fix_package_9(truck):
+    if package9.assigned_truck is truck and truck.time >= ADDRESS_FIX_TIME and package9.address != "410 S State St":
+        package9.address = "410 S State St"
+        package9.zip_code = "84111"
+        for i in range(len(matrix_addresses)):
+            if "410 S State St" in matrix_addresses[i]:   # check it matches your matrix spelling
+                package9.location_index = i
+
+# driver leaves current truck and takes the next free truck that still has work
+def occupy_next_truck(current_truck):
+    for next_truck in trucks:
+        if next_truck.is_occupied is False and (len(next_truck.packages) > 0 or len(packages) > 0):
+            next_truck.is_occupied = True
+            next_truck.needs_loading = True
+            # next truck cant leave before the driver gets back
+            next_truck.time = max(next_truck.time, current_truck.time)
+            current_truck.is_occupied = False
+            return
+
+    # no other truck has work
+    if len(current_truck.packages) == 0:
+        current_truck.is_occupied = False   # driver is done for the day
+    else:
+        # only package 9 left, wait at the hub for 10:20
+        current_truck.time = max(current_truck.time, ADDRESS_FIX_TIME)
+
+
 driver1.assign_truck(truck1)
 driver2.assign_truck(truck2)
 
-print(f"Packages left: {len(packages)}")
-for package in packages:
-    print(f"Package: {package.id}, Status: {package.status}, Deadline: {package.deadline}, Special NOte: {package.special_note}")
+# start route
+while True:
+    for truck in trucks:
+        if not truck.is_occupied:
+            continue
+
+        # make sure a freshly occupied truck loads
+        if truck.needs_loading:
+            truck.load_packages(packages)
+            packages[:] = [p for p in packages if p.status != "Loaded"]
+            truck.needs_loading = False
+
+        fix_package_9(truck)
+
+        for package in truck.packages:
+            if package.status == "Loaded":
+                package.status = "En Route"
+
+        # executes NN algorithm, skips 9 before 10:20
+        if truck.deliver_package(distance_matrix):
+            truck.delivered += 1
+            # lookups and status checks here -----
+
+        elif len(truck.packages) == 0:
+            truck.return_to_hub(distance_matrix)
+            occupy_next_truck(truck)
+
+        elif truck.packages[0].status == "Wrong Address":
+            truck.return_to_hub(distance_matrix)
+            truck.packages[0].status = "Loaded"   # sitting on the truck at the hub
+            occupy_next_truck(truck)
+
+    packages_delivered = truck1.delivered + truck2.delivered + truck3.delivered
+    if packages_delivered >= 40:
+        break
+
+
+# TEST RUN: ------------------------------
+for truck in trucks:
+    truck.report_summary()
+
+total_miles = truck1.distance_traveled + truck2.distance_traveled + truck3.distance_traveled
+print(f"Total miles: {total_miles:.1f}")  # has to be under 140
+
+# check every package got delivered and when
+for package_id in range(1, 41):
+    # look up package information using hash table
+    package = package_table.get(package_id)
+    print(f"Package {package.id}, Truck {package.assigned_truck.id}, Status: {package.status}, Delivered: {time_to_text(package.delivery_time)}, Deadline: {package.deadline}")

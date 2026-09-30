@@ -1,5 +1,3 @@
-# Package hash table using separate chaining for collisions.
-
 
 class HashTable:
     def __init__(self, size):
