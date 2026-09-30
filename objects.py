@@ -2,6 +2,7 @@ SPEED = 18  # mph
 HUB = 0     # hub is row 0 in the distance matrix
 
 
+
 class Driver:
     def __init__(self, id, name):
         self.id = id
@@ -11,6 +12,7 @@ class Driver:
     def assign_truck(self, truck):
         self.truck = truck
         truck.is_occupied = True
+
 
 
 class Truck:
@@ -43,6 +45,8 @@ class Truck:
                 package.status = "Loaded"
         print(f"Truck {self.id} loaded, has {len(self.packages)} packages.")
 
+
+
     # NN algorithm: one stop per call, goes to the closest package it can deliver
     # returns False if nothing can be delivered right now
     def deliver_package(self, distance_matrix):
@@ -56,6 +60,14 @@ class Truck:
 
         if len(ready) == 0:
             return False
+
+        # packages with a deadline go first, NN only picks between those
+        urgent = []
+        for package in ready:
+            if package.deadline != "EOD":
+                urgent.append(package)
+        if len(urgent) > 0:
+            ready = urgent
 
         # find the closest package from where the truck is now
         nearest = ready[0]
@@ -76,6 +88,8 @@ class Truck:
         self.packages.remove(nearest)
         return True
 
+
+
     # drive back to hub, anything left on the truck stays on it
     def return_to_hub(self, distance_matrix):
         dist = float(distance_matrix[self.location][HUB])
@@ -83,10 +97,13 @@ class Truck:
         self.time += dist / SPEED * 60
         self.location = HUB
 
+
+
     # dist traveled and packs delivered
     def report_summary(self):
         clock = f"{int(self.time // 60):02d}:{int(self.time % 60):02d}"
         print(f"Truck {self.id}: {self.delivered} delivered, {self.distance_traveled:.1f} miles, time {clock}")
+
 
 
 class Package:

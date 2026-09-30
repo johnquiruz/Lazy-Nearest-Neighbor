@@ -76,28 +76,51 @@ for truck in trucks:
 packages[:] = [p for p in packages if p.status != "Loaded"]
 
 
-# 3 leave the delayed packages at the hub
-next_truck = 0
+
+# 3 deadline packages go on truck 1 so they leave at 8:00
 for package in packages:
     note = package.special_note.lower()
-
-    if "delayed" in note:
-        # this package stays at hub 
-        package.status = "Delayed"
-
-    else:
-        # skip trucks that are full or reach the end of the truck list
-        while next_truck < len(trucks) and len(trucks[next_truck].packages) >= trucks[next_truck].max_load:
-            next_truck += 1
-
-        # notify dev no more trucks can be loaded
-        if next_truck >= len(trucks):
-            raise ValueError("No truck has available capacity")
-
-        # 4 load remaining packages to next available truck
-        package.assigned_truck = trucks[next_truck]
-        package.assigned_truck.packages.append(package)
+    if package.deadline != "EOD" and "delayed" not in note:
+        if len(truck1.packages) >= truck1.max_load:
+            raise ValueError(f"Truck 1 is full; can't load package {package.id}")
+        package.assigned_truck = truck1
+        truck1.packages.append(package)
         package.status = "Loaded"
+
+# update the packages at the hub by removing packages marked "loaded"
+packages[:] = [p for p in packages if p.status != "Loaded"]
+
+
+
+# 4 delayed packages go on truck 2, truck 2 waits at the hub until they show up
+truck2.time = 545   # 9:05 am
+for package in packages:
+    if "delayed" in package.special_note.lower():
+        if len(truck2.packages) >= truck2.max_load:
+            raise ValueError(f"Truck 2 is full; can't load package {package.id}")
+        package.assigned_truck = truck2
+        truck2.packages.append(package)
+        package.status = "Loaded"
+
+# update the packages at the hub by removing packages marked "loaded"
+packages[:] = [p for p in packages if p.status != "Loaded"]
+
+
+
+# 5 load remaining packages to next available truck
+next_truck = 0
+for package in packages:
+    # skip trucks that are full or reach the end of the truck list
+    while next_truck < len(trucks) and len(trucks[next_truck].packages) >= trucks[next_truck].max_load:
+        next_truck += 1
+
+    # notify dev no more trucks can be loaded
+    if next_truck >= len(trucks):
+        raise ValueError("No truck has available capacity")
+
+    package.assigned_truck = trucks[next_truck]
+    package.assigned_truck.packages.append(package)
+    package.status = "Loaded"
 
 # update the packages at the hub by removing packages marked "loaded"
 packages[:] = [p for p in packages if p.status != "Loaded"]
@@ -122,8 +145,9 @@ def fix_package_9(truck):
     if package9.assigned_truck is truck and truck.time >= ADDRESS_FIX_TIME and package9.address != "410 S State St":
         package9.address = "410 S State St"
         package9.zip_code = "84111"
+        # find the new address in the distance matrix
         for i in range(len(matrix_addresses)):
-            if "410 S State St" in matrix_addresses[i]:   # check it matches your matrix spelling
+            if "410 S State St" in matrix_addresses[i]:
                 package9.location_index = i
 
 # driver leaves current truck and takes the next free truck that still has work
@@ -150,34 +174,43 @@ driver2.assign_truck(truck2)
 
 # start route
 while True:
-    for truck in trucks:
-        if not truck.is_occupied:
-            continue
+    # pick the occupied truck thats furthest behind in time so everything happens in clock order
+    truck = None
+    for t in trucks:
+        if t.is_occupied and (truck is None or t.time < truck.time):
+            truck = t
 
-        # make sure a freshly occupied truck loads
-        if truck.needs_loading:
-            truck.load_packages(packages)
-            packages[:] = [p for p in packages if p.status != "Loaded"]
-            truck.needs_loading = False
+    # no drivers left on any truck
+    if truck is None:
+        break
 
-        fix_package_9(truck)
+    # make sure a freshly occupied truck loads
+    if truck.needs_loading:
+        truck.load_packages(packages)
+        packages[:] = [p for p in packages if p.status != "Loaded"]
+        truck.needs_loading = False
 
-        for package in truck.packages:
-            if package.status == "Loaded":
-                package.status = "En Route"
+    fix_package_9(truck)
 
-        # executes NN algorithm, skips 9 before 10:20
-        if truck.deliver_package(distance_matrix):
-            truck.delivered += 1
-            # lookups and status checks here -----
+    for package in truck.packages:
+        if package.status == "Loaded":
+            package.status = "En Route"
 
-        elif len(truck.packages) == 0:
-            truck.return_to_hub(distance_matrix)
-            occupy_next_truck(truck)
+    # executes NN algorithm, skips 9 before 10:20
+    if truck.deliver_package(distance_matrix):
+        truck.delivered += 1
+        # TODO: lookups and status checks here -----
 
-        elif truck.packages[0].status == "Wrong Address":
-            truck.return_to_hub(distance_matrix)
-            truck.packages[0].status = "Loaded"   # sitting on the truck at the hub
+    elif len(truck.packages) == 0:
+        truck.return_to_hub(distance_matrix)
+        occupy_next_truck(truck)
+
+    elif truck.packages[0].status == "Wrong Address":
+        truck.return_to_hub(distance_matrix)
+        truck.packages[0].status = "Loaded"   # sitting on the truck at the hub
+
+        # if its already past 10:20 the driver gets the new address and keeps going
+        if truck.time < ADDRESS_FIX_TIME:
             occupy_next_truck(truck)
 
     packages_delivered = truck1.delivered + truck2.delivered + truck3.delivered
