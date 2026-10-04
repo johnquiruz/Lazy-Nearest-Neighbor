@@ -3,7 +3,7 @@ class HashTable:
         self.size = size
 
         # each inner list stores entries that share the same bucket
-        self.buckets = [[] for _ in range(size)]
+        self.buckets = [[] for _ in range(size)] # implementation: list of tuples, (id, package) for each bucket
 
     def insert(self, package_id, package):
         # use the hash as the index of the target bucket
