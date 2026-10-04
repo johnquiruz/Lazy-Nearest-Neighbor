@@ -1,11 +1,10 @@
+# pandas and numpy are only used here to read the excel file and fill in the missing half of the table
+# the data is turned into a tuple of addresses and a list of tuples before it's returned,
+# so the rest of the program only works with built-in python structures
+
+
 import numpy as np
 import pandas as pd
-
-
-def _clean_address(address):
-	cleaned = " ".join(str(address).replace("\n", " ").split()).lower()
-	return cleaned.replace(" station ", " sta ")
-
 
 def load_distance_data():
 	file_path = "./dataset/WGUPS_Distance_Table.xlsx"

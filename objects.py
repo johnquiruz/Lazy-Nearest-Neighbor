@@ -1,8 +1,6 @@
 SPEED = 18  # mph
 HUB = 0     # hub is row 0 in the distance matrix
 
-
-
 class Driver:
     def __init__(self, id, name):
         self.id = id

@@ -33,7 +33,6 @@ def load_status_check(truck):
     print(f"has {len(truck.packages)} packages.")
 
 
-
 # SETUP: ------------------------------
 
 # build a destination and routing map by mapping a relation between distance and package sheets
@@ -140,6 +139,7 @@ for package in packages:
 update_hub()
 
 
+print("\nLOADING COMPLETE - SUMMARY:")
 load_status_check(truck1)
 load_status_check(truck2)
 
@@ -151,7 +151,7 @@ load_status_check(truck2)
 def fix_package_9(truck):
     if package9.assigned_truck is truck and truck.time >= ADDRESS_FIX_TIME and package9.address != "410 S State St":
         package9.address = "410 S State St"
-        package9.zip_code = "84111"
+        package9.zip_code = 84111
         # find the new address in the distance matrix
         for i in range(len(matrix_addresses)):
             if "410 S State St" in matrix_addresses[i]:
@@ -279,9 +279,12 @@ def ask_for_time():
 
 # SAMPLE RUN/INTERFACE: ------------------------------
 '''
+LOADING COMPLETE - SUMMARY:
 Truck 1 fully loaded, has 16 packages.
 Truck 2 fully loaded, has 16 packages.
 Truck 3 loaded, has 8 packages.
+
+ROUTING COMPLETE - SUMMARY:
 Truck 1: 16 delivered, 38.6 miles, time 10:08
 Truck 2: 16 delivered, 42.5 miles, time 11:26
 Truck 3: 8 delivered, 27.5 miles, time 11:40
@@ -306,6 +309,7 @@ Choose an option: 3
 Total mileage: 108.6
 '''
 
+print("\nROUTING COMPLETE - SUMMARY:")
 for truck in trucks:
     truck.report_summary()
 print(f"All {TOTAL_PACKAGES} packages delivered. Total mileage: {get_total_miles():.1f}")
@@ -347,4 +351,4 @@ while True:
         break
 
     else:
-        print("Pick 1, 2, 3, or 4.")
+        print("\nError: Please choose options 1-4")

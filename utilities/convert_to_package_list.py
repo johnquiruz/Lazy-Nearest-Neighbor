@@ -1,3 +1,7 @@
+# pandas is only used here to read the excel file
+# each row is turned into a Package object and stored in a regular list before it's returned,
+# so the rest of the program only works with built-in python structures and the hash table
+
 import pandas as pd
 from objects import Package
 
