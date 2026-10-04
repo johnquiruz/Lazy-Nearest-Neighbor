@@ -33,7 +33,7 @@ def find_address_index(package_address, matrix_addresses):
 
 # load the package data from the excel file and associate each package with 
 # its index in the distance matrix
-def load_packages(matrix_addresses):
+def load_packages_from_excel(matrix_addresses):
     df = pd.read_excel("./dataset/WGUPS_Package_File.xlsx", header=7)
     df.columns = [
         "id",

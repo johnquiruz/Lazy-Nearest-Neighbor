@@ -118,6 +118,5 @@ class Package:
         self.special_note = special_note
         self.location_index = location_index
         self.assigned_truck = None
-        self.must_deliver_with = []
         self.status = "At Hub"
         self.delivery_time = None   # minutes since midnight, set when delivered
